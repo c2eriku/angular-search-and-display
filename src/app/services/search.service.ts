@@ -38,7 +38,6 @@ export class SearchService implements ISearchService {
     private router: Router,
     private route: ActivatedRoute
   ) {
-    console.log(searchConfig);
     this._initFromDefault(searchConfig);
     this._initFromUrl();
   }
@@ -78,7 +77,7 @@ export class SearchService implements ISearchService {
   }
 
   searchBooks(currentSearch: CurrentSearch): Observable<SearchResult> {
-    console.log('%ccurrentSearch', 'color:blue');
+    console.log('%csearchBooks launched!', 'color:blue');
     const { searchText, pageSize, page } = currentSearch;
 
     const searchQuery = searchText.split(' ').join('+').toLowerCase();

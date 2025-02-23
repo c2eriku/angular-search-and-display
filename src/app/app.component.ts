@@ -69,7 +69,7 @@ export class AppComponent {
   // TODO: Implement this observable to call the searchBooks() function
   // Hint: Use RxJS operators to solve these issues
   searchResults$: Observable<SearchResult> = this.$search.currentSearch$.pipe(
-    debounceTime(200),
+    debounceTime(300),
     distinctUntilChanged(
       (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)
     ),
