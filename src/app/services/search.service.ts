@@ -1,41 +1,90 @@
-import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { Inject, inject, Injectable, InjectionToken } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { CurrentSearch, SearchResult } from '../models/search.model';
+import { HttpClient } from '@angular/common/http';
 
 interface SearchConfig {
   defaultPageSize?: number;
 }
 
-export interface CurrentSearch {
-  searchText: string;
-  pageSize: number;
-  page: number;
-}
-
 export interface ISearchService {
-  searchText: string;
-  pageSize: number;
-  page: number;
   currentSearch$: BehaviorSubject<CurrentSearch | null>;
-  submit(): void;
+  submit(search: CurrentSearch): void;
 }
 
 // BONUS: Use DI to update the config of SearchService to update page size
-export const SEARCH_CONFIG = undefined;
+export const SEARCH_CONFIG: InjectionToken<SearchConfig> =
+  new InjectionToken<SearchConfig>('SearchConfig');
 
 @Injectable()
 export class SearchService implements ISearchService {
-  searchText = '';
-  pageSize = 10;
-  page = 1;
+  private $http = inject(HttpClient);
+
   currentSearch$ = new BehaviorSubject<CurrentSearch | null>(null);
 
-  constructor(private router: Router) {
+  get searchText() {
+    return this.currentSearch$.value?.searchText;
+  }
+  get pageSize() {
+    return this.currentSearch$.value?.pageSize;
+  }
+  get page() {
+    return this.currentSearch$.value?.page;
+  }
+
+  constructor(
+    @Inject(SEARCH_CONFIG) searchConfig: SearchConfig,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    console.log(searchConfig);
+    this._initFromDefault(searchConfig);
     this._initFromUrl();
   }
 
-  // BONUS: Keep the current search params in the URL that allow users to refresh the page and search again
-  private _initFromUrl() {}
+  private _initFromDefault(searchConfig: SearchConfig) {
+    if (searchConfig.defaultPageSize) {
+      this.currentSearch$.next({
+        searchText: '',
+        pageSize: searchConfig.defaultPageSize,
+        page: 1,
+      });
+    }
+  }
 
-  submit() {}
+  // BONUS: Keep the current search params in the URL that allow users to refresh the page and search again
+  private _initFromUrl() {
+    this.route.queryParams.subscribe((params) => {
+      if (Object.keys(params).length === 0) return;
+
+      const search: CurrentSearch = {
+        searchText: params['searchText'] || '',
+        pageSize:
+          params['pageSize'] ?? this.currentSearch$.value?.pageSize ?? 1,
+        page: params['page'] ?? 1,
+      };
+
+      this.currentSearch$.next(search);
+    });
+  }
+
+  submit(search: CurrentSearch) {
+    this.currentSearch$.next(search);
+    this.router.navigate([], {
+      queryParams: search,
+      queryParamsHandling: 'merge', // 保留現有的 queryParams
+    });
+  }
+
+  searchBooks(currentSearch: CurrentSearch): Observable<SearchResult> {
+    console.log('%ccurrentSearch', 'color:blue');
+    const { searchText, pageSize, page } = currentSearch;
+
+    const searchQuery = searchText.split(' ').join('+').toLowerCase();
+
+    return this.$http.get<SearchResult>(
+      `https://openlibrary.org/search.json?q=${searchQuery}&page=${page}&limit=${pageSize}`
+    );
+  }
 }
