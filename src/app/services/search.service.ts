@@ -1,8 +1,8 @@
 import { Inject, inject, Injectable, InjectionToken } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, catchError, Observable, of, timeout } from 'rxjs';
 import { CurrentSearch, SearchResult } from '../models/search.model';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 interface SearchConfig {
   defaultPageSize?: number;
@@ -72,18 +72,28 @@ export class SearchService implements ISearchService {
     this.currentSearch$.next(search);
     this.router.navigate([], {
       queryParams: search,
-      queryParamsHandling: 'merge', // 保留現有的 queryParams
     });
   }
 
   searchBooks(currentSearch: CurrentSearch): Observable<SearchResult> {
-    console.log('%csearchBooks launched!', 'color:blue');
     const { searchText, pageSize, page } = currentSearch;
 
     const searchQuery = searchText.split(' ').join('+').toLowerCase();
 
-    return this.$http.get<SearchResult>(
-      `https://openlibrary.org/search.json?q=${searchQuery}&page=${page}&limit=${pageSize}`
-    );
+    return this.$http
+      .get<SearchResult>(
+        `https://openlibrary.org/search.json?q=${searchQuery}&page=${page}&limit=${pageSize}`
+      )
+      .pipe(
+        timeout(5000),
+        catchError((error: HttpErrorResponse) => {
+          console.error('HTTP error: ', error);
+          alert(`HTTP error: ${error.message}`);
+          return of({
+            num_found: 0,
+            docs: [],
+          });
+        })
+      );
   }
 }

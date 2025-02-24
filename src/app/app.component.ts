@@ -17,12 +17,10 @@ import {
   distinctUntilChanged,
   filter,
   Observable,
-  switchMap,
+  shareReplay,
+  switchMap
 } from 'rxjs';
-import {
-  SEARCH_CONFIG,
-  SearchService,
-} from './services/search.service';
+import { SEARCH_CONFIG, SearchService } from './services/search.service';
 import { CurrentSearch, SearchResult } from './models/search.model';
 
 @Component({
@@ -46,7 +44,7 @@ import { CurrentSearch, SearchResult } from './models/search.model';
     {
       provide: SEARCH_CONFIG,
       useValue: {
-        defaultPageSize: 25,
+        defaultPageSize: 10,
       },
     },
   ],
@@ -55,6 +53,7 @@ export class AppComponent {
   // TODO: Create a SearchService and use DI to inject it
   // Check app/services/search.service.ts for the implementation
   public $search = inject(SearchService);
+
   readonly searchText = new FormControl<string>('', {
     validators: [Validators.required],
     nonNullable: true,
@@ -71,16 +70,17 @@ export class AppComponent {
   searchResults$: Observable<SearchResult> = this.$search.currentSearch$.pipe(
     debounceTime(300),
     distinctUntilChanged(
-      (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)
+      (prev, curr) =>
+        prev?.searchText === curr?.searchText &&
+        prev?.pageSize === curr?.pageSize &&
+        prev?.page === curr?.page
     ),
     filter(
-      (search): search is CurrentSearch =>
-        !!search && search.searchText.trim() !== ''
+      (currentSearch): currentSearch is CurrentSearch =>
+        !!currentSearch && currentSearch.searchText.trim() !== ''
     ),
-    // tap((search) => console.log('啟動search', search)),
-    switchMap((currentSearch) => this.$search.searchBooks(currentSearch))
-    // tap((results) => console.log('search結果:', results)),
-    // shareReplay(1)
+    switchMap((currentSearch) => this.$search.searchBooks(currentSearch)),
+    shareReplay(1)
   );
 
   onSearchClick() {

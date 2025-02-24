@@ -26,7 +26,9 @@
         "
       />
       <div matListItemTitle>{{ result.title }}</div>
+      @if(result.author_name){
       <div matListItemLine>{{ result.author_name.join(", ") }}</div>
+      }
     </mat-list-item>
     }
   </mat-list>
@@ -35,12 +37,11 @@
   <mat-paginator
     class="border-0 border-t border-black border-solid"
     [length]="searchResults.num_found"
-    [pageIndex]="$search.page! - 1"
+    [pageIndex]="($search.page ?? 1) - 1"
     [pageSize]="$search.pageSize"
     [pageSizeOptions]="[5, 10, 25, 100]"
     (page)="onPageChange($event)"
     aria-label="Select page"
   />
-  }
-}
+  } }
 </div>
