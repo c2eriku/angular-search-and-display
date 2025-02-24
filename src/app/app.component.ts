@@ -18,7 +18,7 @@ import {
   filter,
   Observable,
   shareReplay,
-  switchMap
+  switchMap,
 } from 'rxjs';
 import { SEARCH_CONFIG, SearchService } from './services/search.service';
 import { CurrentSearch, SearchResult } from './models/search.model';
@@ -84,6 +84,7 @@ export class AppComponent {
   );
 
   onSearchClick() {
+    this.searchText.patchValue(this.searchText.value.trim());
     if (this.searchText.invalid) return alert('Search text cannot be empty.');
     this.$search.submit({
       searchText: this.searchText.value ?? '',
